@@ -631,20 +631,8 @@
     </footer>
     
     <script>
-        // ===== CONFIGURAZIONE =====
-        // Sostituisci questi valori con i tuoi dati reali
-        const CONFIG = {
-            // Google Sheets - Web App URL (devi creare un Google Apps Script)
-            GOOGLE_SHEETS_URL: 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL',
-            
-            // AWeber API (hai bisogno di account developer AWeber)
-            AWEBER_ACCOUNT_ID: 'YOUR_ACCOUNT_ID',
-            AWEBER_LIST_ID: 'YOUR_LIST_ID',
-            AWEBER_TAG_NAME: 'live-3-agosto',
-            
-            // Se usi un backend proxy per AWeber (consigliato per sicurezza)
-            BACKEND_PROXY_URL: 'https://your-backend.com/api/aweber-subscribe'
-        };
+        // URL della Netlify Function
+        const NETLIFY_FUNCTION_URL = '/.netlify/functions/submit-form';
 
         // Form submission
         document.getElementById('registrationForm').addEventListener('submit', async function(e) {
@@ -667,13 +655,22 @@
             loading.style.display = 'block';
             
             try {
-                // 1. Salva su Google Sheets
-                await saveToGoogleSheets(formData);
+                // Invia i dati alla Netlify Function
+                const response = await fetch(NETLIFY_FUNCTION_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Errore durante la registrazione');
+                }
                 
-                // 2. Aggiungi ad AWeber con tag
-                await addToAWeber(formData);
-                
-                // 3. Traccia conversione Facebook
+                // Traccia conversione Facebook
                 if (typeof fbq !== 'undefined') {
                     fbq('track', 'Lead', {
                         value: 0.00,
@@ -692,61 +689,6 @@
             }
         });
         
-        // Funzione per salvare su Google Sheets
-        async function saveToGoogleSheets(data) {
-            // Opzione 1: Usando Google Apps Script (consigliato)
-            // Devi creare uno script in Google Sheets che accetti POST requests
-            
-            const response = await fetch(CONFIG.GOOGLE_SHEETS_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'addRow',
-                    data: [
-                        data.timestamp,
-                        data.fullName,
-                        data.email,
-                        data.phone,
-                        'live-3-agosto' // campaign name
-                    ]
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error('Errore nel salvare su Google Sheets');
-            }
-        }
-        
-        // Funzione per aggiungere ad AWeber
-        async function addToAWeber(data) {
-            // IMPORTANTE: Non mettere le API keys di AWeber nel frontend!
-            // Usa sempre un backend proxy per proteggere le tue credenziali
-            
-            const subscriberData = {
-                email: data.email,
-                name: data.fullName,
-                custom_fields: {
-                    phone: data.phone
-                },
-                tags: [CONFIG.AWEBER_TAG_NAME]
-            };
-            
-            // Chiama il tuo backend che gestisce AWeber
-            const response = await fetch(CONFIG.BACKEND_PROXY_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(subscriberData)
-            });
-            
-            if (!response.ok) {
-                throw new Error('Errore nell\'aggiungere ad AWeber');
-            }
-        }
-        
         // Phone number formatting
         document.getElementById('phone').addEventListener('input', function(e) {
             // Remove non-numeric characters
@@ -754,83 +696,5 @@
             e.target.value = value;
         });
     </script>
-    
-    <!-- 
-    ===== ESEMPIO DI GOOGLE APPS SCRIPT =====
-    
-    Crea un nuovo Google Apps Script nel tuo Google Sheet:
-    1. Apri il tuo Google Sheet
-    2. Estensioni > Apps Script
-    3. Incolla questo codice:
-    
-    function doPost(e) {
-        try {
-            const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-            const data = JSON.parse(e.postData.contents);
-            
-            if (data.action === 'addRow') {
-                sheet.appendRow(data.data);
-                return ContentService
-                    .createTextOutput(JSON.stringify({success: true}))
-                    .setMimeType(ContentService.MimeType.JSON);
-            }
-        } catch (error) {
-            return ContentService
-                .createTextOutput(JSON.stringify({success: false, error: error.toString()}))
-                .setMimeType(ContentService.MimeType.JSON);
-        }
-    }
-    
-    4. Pubblica > Implementa come app web
-    5. Esegui come: Me
-    6. Chi ha accesso: Chiunque
-    7. Copia l'URL e usalo in CONFIG.GOOGLE_SHEETS_URL
-    -->
-    
-    <!-- 
-    ===== ESEMPIO DI BACKEND NODE.JS PER AWEBER =====
-    
-    // server.js
-    const express = require('express');
-    const axios = require('axios');
-    const app = express();
-    
-    app.use(express.json());
-    
-    // AWeber credentials (tienili sicuri nel backend!)
-    const AWEBER_ACCESS_TOKEN = process.env.AWEBER_ACCESS_TOKEN;
-    const AWEBER_ACCOUNT_ID = process.env.AWEBER_ACCOUNT_ID;
-    const AWEBER_LIST_ID = process.env.AWEBER_LIST_ID;
-    
-    app.post('/api/aweber-subscribe', async (req, res) => {
-        try {
-            const { email, name, custom_fields, tags } = req.body;
-            
-            // Add subscriber to AWeber
-            const response = await axios.post(
-                `https://api.aweber.com/1.0/accounts/${AWEBER_ACCOUNT_ID}/lists/${AWEBER_LIST_ID}/subscribers`,
-                {
-                    email,
-                    name,
-                    custom_fields,
-                    tags
-                },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${AWEBER_ACCESS_TOKEN}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-            
-            res.json({ success: true });
-        } catch (error) {
-            console.error('AWeber error:', error);
-            res.status(500).json({ success: false, error: error.message });
-        }
-    });
-    
-    app.listen(3000);
-    -->
 </body>
 </html>
