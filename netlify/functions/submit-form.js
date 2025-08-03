@@ -89,7 +89,7 @@ async function saveToGoogleSheets(data) {
     const dataFormattata = now.toLocaleDateString('it-IT') + ' ' + now.toLocaleTimeString('it-IT');
     
     // Rimuovi il prefisso dal numero di telefono per la colonna NO PREFIX
-    const phoneWithoutPrefix = data.phone.replace(/^\+\d{1,3}/, '').replace(/^0+/, '');
+    const phoneWithoutPrefix = data.phone.replace(/^\+\d{1,4}/, '');
 
     // Prepara i dati da inserire secondo le colonne del tuo sheet
     const values = [[
