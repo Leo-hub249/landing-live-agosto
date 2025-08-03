@@ -89,7 +89,23 @@ async function saveToGoogleSheets(data) {
     const dataFormattata = now.toLocaleDateString('it-IT') + ' ' + now.toLocaleTimeString('it-IT');
     
     // Rimuovi il prefisso dal numero di telefono per la colonna NO PREFIX
-    const phoneWithoutPrefix = data.phone.replace(/^\+\d{1,4}/, '');
+    // Rimuovi solo il prefisso internazionale (+ seguito da 1-3 cifre)
+let phoneWithoutPrefix = data.phone;
+
+if (phoneWithoutPrefix.startsWith('+')) {
+    // Trova la posizione dopo il prefisso internazionale
+    // I prefissi sono di solito 1-3 cifre dopo il +
+    if (phoneWithoutPrefix.startsWith('+1')) {
+        phoneWithoutPrefix = phoneWithoutPrefix.substring(2); // USA, Canada
+    } else if (phoneWithoutPrefix.startsWith('+39') || phoneWithoutPrefix.startsWith('+44') || phoneWithoutPrefix.startsWith('+33')) {
+        phoneWithoutPrefix = phoneWithoutPrefix.substring(3); // Italia, UK, Francia (2 cifre)
+    } else if (phoneWithoutPrefix.startsWith('+420') || phoneWithoutPrefix.startsWith('+358')) {
+        phoneWithoutPrefix = phoneWithoutPrefix.substring(4); // Repubblica Ceca, Finlandia (3 cifre)
+    } else {
+        // Default: assume 2 cifre
+        phoneWithoutPrefix = phoneWithoutPrefix.substring(3);
+    }
+}
 
     // Prepara i dati da inserire secondo le colonne del tuo sheet
     const values = [[
