@@ -1,0 +1,9 @@
+{
+    "name": "netlify-functions",
+    "version": "1.0.0",
+    "description": "Netlify functions for form submission",
+    "dependencies": {
+      "googleapis": "^118.0.0",
+      "axios": "^1.6.0"
+    }
+  }

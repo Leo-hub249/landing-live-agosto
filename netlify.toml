@@ -1,0 +1,10 @@
+[build]
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/thankyou-1"
+  to = "/thankyou.html"
+  status = 200
