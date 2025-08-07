@@ -637,16 +637,34 @@
             return urlParams.get(name);
         }
 
-        // Ottieni la fonte dal parametro URL o usa 'direct' come default
-        const source = getUrlParameter('utm_source') || getUrlParameter('source') || 'direct';
-
-        // Salva la fonte nel sessionStorage per mantenerla durante la navigazione
-        if (source !== 'direct') {
-            sessionStorage.setItem('traffic_source', source);
+        // Ottieni la fonte dal parametro URL
+        let source = getUrlParameter('utm_source') || getUrlParameter('source');
+        
+        // Se non c'è parametro, controlla il percorso
+        if (!source) {
+            const path = window.location.pathname;
+            const pathMap = {
+                '/mads': 'mads',
+                '/igs': 'igs',
+                '/fb': 'fb',
+                '/google': 'google',
+                '/tiktok': 'tiktok',
+                '/yt': 'youtube',
+                '/email': 'email',
+                '/sms': 'sms'
+            };
+            source = pathMap[path] || 'direct';
         }
 
-        // Recupera la fonte salvata
-        const finalSource = sessionStorage.getItem('traffic_source') || source;
+        // Salva SEMPRE la fonte nel sessionStorage
+        if (source && source !== 'direct') {
+            sessionStorage.setItem('traffic_source', source);
+            console.log('Fonte salvata:', source); // Debug
+        }
+
+        // Recupera la fonte salvata o usa quella attuale
+        const finalSource = source || sessionStorage.getItem('traffic_source') || 'direct';
+        console.log('Fonte finale:', finalSource); // Debug
 
         // ===== FORM HANDLING =====
         // URL della Netlify Function
@@ -668,6 +686,8 @@
                 timestamp: new Date().toISOString(),
                 source: finalSource // Fonte dinamica basata sull'URL
             };
+            
+            console.log('Dati form:', formData); // Debug
             
             // Show loading
             submitBtn.style.display = 'none';
