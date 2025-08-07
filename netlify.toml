@@ -7,51 +7,43 @@
 # Redirect per tracciare le fonti
 [[redirects]]
   from = "/mads"
-  to = "/index.html"
+  to = "/index.html?utm_source=mads"
   status = 200
-  query = {utm_source = "mads"}
 
 [[redirects]]
   from = "/igs"
-  to = "/index.html"
+  to = "/index.html?utm_source=igs"
   status = 200
-  query = {utm_source = "igs"}
 
 [[redirects]]
   from = "/fb"
-  to = "/index.html"
+  to = "/index.html?utm_source=fb"
   status = 200
-  query = {utm_source = "fb"}
 
 [[redirects]]
   from = "/google"
-  to = "/index.html"
+  to = "/index.html?utm_source=google"
   status = 200
-  query = {utm_source = "google"}
 
 [[redirects]]
   from = "/tiktok"
-  to = "/index.html"
+  to = "/index.html?utm_source=tiktok"
   status = 200
-  query = {utm_source = "tiktok"}
 
 [[redirects]]
   from = "/yt"
-  to = "/index.html"
+  to = "/index.html?utm_source=youtube"
   status = 200
-  query = {utm_source = "youtube"}
 
 [[redirects]]
   from = "/email"
-  to = "/index.html"
+  to = "/index.html?utm_source=email"
   status = 200
-  query = {utm_source = "email"}
 
 [[redirects]]
   from = "/sms"
-  to = "/index.html"
+  to = "/index.html?utm_source=sms"
   status = 200
-  query = {utm_source = "sms"}
 
 # Redirect per thank you page
 [[redirects]]
