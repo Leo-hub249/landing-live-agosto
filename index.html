@@ -629,8 +629,26 @@
             </div>
         </div>
     </footer>
-    
     <script>
+        // ===== TRACKING FONTE =====
+        // Funzione per ottenere i parametri URL
+        function getUrlParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // Ottieni la fonte dal parametro URL o usa 'direct' come default
+        const source = getUrlParameter('utm_source') || getUrlParameter('source') || 'direct';
+
+        // Salva la fonte nel sessionStorage per mantenerla durante la navigazione
+        if (source !== 'direct') {
+            sessionStorage.setItem('traffic_source', source);
+        }
+
+        // Recupera la fonte salvata
+        const finalSource = sessionStorage.getItem('traffic_source') || source;
+
+        // ===== FORM HANDLING =====
         // URL della Netlify Function
         const NETLIFY_FUNCTION_URL = '/.netlify/functions/submit-form';
 
@@ -642,12 +660,13 @@
             const submitBtn = form.querySelector('.submit-btn');
             const loading = document.querySelector('.loading');
             
-            // Get form data
+            // Get form data con la fonte dinamica
             const formData = {
                 fullName: document.getElementById('fullName').value,
                 email: document.getElementById('email').value,
                 phone: document.getElementById('countryCode').value + document.getElementById('phone').value,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                source: finalSource // Fonte dinamica basata sull'URL
             };
             
             // Show loading
@@ -674,7 +693,8 @@
                 if (typeof fbq !== 'undefined') {
                     fbq('track', 'Lead', {
                         value: 0.00,
-                        currency: 'EUR'
+                        currency: 'EUR',
+                        content_category: finalSource // Passa anche la fonte a Facebook
                     });
                 }
                 

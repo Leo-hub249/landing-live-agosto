@@ -72,6 +72,7 @@ exports.handler = async (event, context) => {
 };
 
 // Funzione per salvare su Google Sheets
+// Funzione per salvare su Google Sheets
 async function saveToGoogleSheets(data) {
   try {
     // Configura l'autenticazione
@@ -88,24 +89,41 @@ async function saveToGoogleSheets(data) {
     const now = new Date();
     const dataFormattata = now.toLocaleDateString('it-IT') + ' ' + now.toLocaleTimeString('it-IT');
     
-    // Rimuovi il prefisso dal numero di telefono per la colonna NO PREFIX
-    // Rimuovi solo il prefisso internazionale (+ seguito da 1-3 cifre)
-let phoneWithoutPrefix = data.phone;
-
-if (phoneWithoutPrefix.startsWith('+')) {
-    // Trova la posizione dopo il prefisso internazionale
-    // I prefissi sono di solito 1-3 cifre dopo il +
-    if (phoneWithoutPrefix.startsWith('+1')) {
-        phoneWithoutPrefix = phoneWithoutPrefix.substring(2); // USA, Canada
-    } else if (phoneWithoutPrefix.startsWith('+39') || phoneWithoutPrefix.startsWith('+44') || phoneWithoutPrefix.startsWith('+33')) {
-        phoneWithoutPrefix = phoneWithoutPrefix.substring(3); // Italia, UK, Francia (2 cifre)
-    } else if (phoneWithoutPrefix.startsWith('+420') || phoneWithoutPrefix.startsWith('+358')) {
-        phoneWithoutPrefix = phoneWithoutPrefix.substring(4); // Repubblica Ceca, Finlandia (3 cifre)
-    } else {
-        // Default: assume 2 cifre
-        phoneWithoutPrefix = phoneWithoutPrefix.substring(3);
+    // Rimuovi il prefisso internazionale per la colonna NO PREFIX
+    let phoneWithoutPrefix = data.phone;
+    if (phoneWithoutPrefix.startsWith('+')) {
+        // Rimuovi il + e le prime 2 cifre per i prefissi italiani
+        if (phoneWithoutPrefix.startsWith('+39')) {
+            phoneWithoutPrefix = phoneWithoutPrefix.substring(3);
+        } else if (phoneWithoutPrefix.startsWith('+1')) {
+            phoneWithoutPrefix = phoneWithoutPrefix.substring(2);
+        } else if (phoneWithoutPrefix.startsWith('+44') || phoneWithoutPrefix.startsWith('+33')) {
+            phoneWithoutPrefix = phoneWithoutPrefix.substring(3);
+        } else if (phoneWithoutPrefix.startsWith('+420') || phoneWithoutPrefix.startsWith('+358')) {
+            phoneWithoutPrefix = phoneWithoutPrefix.substring(4);
+        } else {
+            // Default: assume 2 cifre dopo il +
+            phoneWithoutPrefix = phoneWithoutPrefix.substring(3);
+        }
     }
-}
+
+    // Mappa delle fonti con nomi più leggibili
+    const sourceMap = {
+        'mads': 'Meta Ads',
+        'igs': 'Instagram', 
+        'fb': 'Facebook',
+        'google': 'Google Ads',
+        'tiktok': 'TikTok',
+        'youtube': 'YouTube',
+        'yt': 'YouTube',
+        'email': 'Email Marketing',
+        'sms': 'SMS Marketing',
+        'direct': 'Traffico Diretto',
+        // Aggiungi altre fonti qui se necessario
+    };
+
+    // Usa il nome mappato o il valore originale se non trovato
+    const sourceName = sourceMap[data.source] || data.source || 'live-3-agosto';
 
     // Prepara i dati da inserire secondo le colonne del tuo sheet
     const values = [[
@@ -113,7 +131,7 @@ if (phoneWithoutPrefix.startsWith('+')) {
       data.email,         // EMAIL
       data.phone,         // TELEFONO (con prefisso)
       dataFormattata,     // DATA
-      'live-3-agosto',    // FONTE
+      sourceName,         // FONTE (dinamica basata sull'URL)
       phoneWithoutPrefix  // NO PREFIX
     ]];
 
@@ -125,7 +143,7 @@ if (phoneWithoutPrefix.startsWith('+')) {
       requestBody: { values }
     });
 
-    console.log('Salvato su Google Sheets');
+    console.log('Salvato su Google Sheets con fonte:', sourceName);
   } catch (error) {
     console.error('Errore Google Sheets:', error);
     throw new Error('Impossibile salvare su Google Sheets');

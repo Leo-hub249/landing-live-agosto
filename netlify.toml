@@ -4,6 +4,56 @@
 [functions]
   node_bundler = "esbuild"
 
+# Redirect per tracciare le fonti
+[[redirects]]
+  from = "/mads"
+  to = "/index.html"
+  status = 200
+  query = {utm_source = "mads"}
+
+[[redirects]]
+  from = "/igs"
+  to = "/index.html"
+  status = 200
+  query = {utm_source = "igs"}
+
+[[redirects]]
+  from = "/fb"
+  to = "/index.html"
+  status = 200
+  query = {utm_source = "fb"}
+
+[[redirects]]
+  from = "/google"
+  to = "/index.html"
+  status = 200
+  query = {utm_source = "google"}
+
+[[redirects]]
+  from = "/tiktok"
+  to = "/index.html"
+  status = 200
+  query = {utm_source = "tiktok"}
+
+[[redirects]]
+  from = "/yt"
+  to = "/index.html"
+  status = 200
+  query = {utm_source = "youtube"}
+
+[[redirects]]
+  from = "/email"
+  to = "/index.html"
+  status = 200
+  query = {utm_source = "email"}
+
+[[redirects]]
+  from = "/sms"
+  to = "/index.html"
+  status = 200
+  query = {utm_source = "sms"}
+
+# Redirect per thank you page
 [[redirects]]
   from = "/thankyou-1"
   to = "/thankyou.html"
