@@ -72,7 +72,6 @@ exports.handler = async (event, context) => {
 };
 
 // Funzione per salvare su Google Sheets
-// Funzione per salvare su Google Sheets
 async function saveToGoogleSheets(data) {
   try {
     // Configura l'autenticazione
@@ -162,7 +161,7 @@ async function getAWeberAccessToken() {
 
     return response.data.access_token;
   } catch (error) {
-    console.error('Errore ottenendo AWeber token:', error);
+    console.error('Errore ottenendo AWeber token:', error.response?.data || error.message);
     throw new Error('Impossibile autenticarsi con AWeber');
   }
 }
@@ -173,75 +172,51 @@ async function addToAWeber(data) {
     // Ottieni access token
     const accessToken = await getAWeberAccessToken();
 
-    // Prepara i dati del subscriber
-    const subscriberData = {
-      email: data.email,
-      name: data.fullName,
-      custom_fields: {
-        phone: data.phone
-      },
-      tags: ['live-3-agosto'],
-      update_existing: true // Aggiorna se esiste già
-    };
-
-    // Aggiungi il subscriber
-    const response = await axios.post(
+    // Prima verifica se il subscriber esiste già
+    console.log('Verifico se il subscriber esiste già...');
+    
+    const searchResponse = await axios.get(
       `https://api.aweber.com/1.0/accounts/${AWEBER_ACCOUNT_ID}/lists/${AWEBER_LIST_ID}/subscribers`,
-      subscriberData,
       {
+        params: { 
+          'ws.op': 'find',
+          'email': data.email
+        },
         headers: {
           'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         }
       }
     );
 
-    console.log('Aggiunto ad AWeber con successo');
-    
-  } catch (error) {
-    // Se l'email esiste già, aggiorna il subscriber e aggiungi il tag
-    if (error.response && error.response.status === 400 && error.response.data.error.message.includes('already subscribed')) {
-      console.log('Email già esistente, aggiorno il subscriber...');
+    if (searchResponse.data.entries && searchResponse.data.entries.length > 0) {
+      // Subscriber esiste già, aggiorna
+      console.log('Subscriber esistente trovato, procedo con aggiornamento...');
+      const subscriber = searchResponse.data.entries[0];
       
-      try {
-        const accessToken = await getAWeberAccessToken();
-        
-        // Cerca il subscriber esistente
-        const searchResponse = await axios.get(
-          `https://api.aweber.com/1.0/accounts/${AWEBER_ACCOUNT_ID}/lists/${AWEBER_LIST_ID}/subscribers`,
-          {
-            params: { 
-              'email': data.email,
-              'ws.op': 'find'
-            },
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
-            }
+      // Aggiorna i custom fields
+      await axios.patch(
+        subscriber.self_link,
+        {
+          name: data.fullName,
+          custom_fields: {
+            phone: data.phone
           }
-        );
-
-        if (searchResponse.data.entries && searchResponse.data.entries.length > 0) {
-          const subscriber = searchResponse.data.entries[0];
-          const subscriberId = subscriber.id;
-          
-          // Aggiorna i custom fields
-          await axios.patch(
-            subscriber.self_link,
-            {
-              custom_fields: {
-                phone: data.phone
-              }
-            },
-            {
-              headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-              }
-            }
-          );
-          
-          // Aggiungi il tag
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
+      );
+      
+      // Aggiungi il tag se non esiste già
+      const currentTags = subscriber.tags || [];
+      if (!currentTags.includes('live-3-agosto')) {
+        try {
           await axios.post(
             `${subscriber.self_link}/tags`,
             { 
@@ -250,20 +225,81 @@ async function addToAWeber(data) {
             {
               headers: {
                 'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
               }
             }
           );
-          
-          console.log('Subscriber esistente aggiornato con successo');
+          console.log('Tag aggiunto al subscriber esistente');
+        } catch (tagError) {
+          // Il tag potrebbe già esistere, non è un errore critico
+          console.log('Tag potrebbe già esistere:', tagError.response?.data || tagError.message);
         }
-      } catch (updateError) {
-        console.error('Errore durante aggiornamento subscriber:', updateError.response?.data || updateError);
-        // Non lanciamo l'errore per non bloccare il processo
+      }
+      
+      console.log('Subscriber esistente aggiornato con successo');
+      
+    } else {
+      // Subscriber non esiste, crea nuovo
+      console.log('Nuovo subscriber, procedo con creazione...');
+      
+      const subscriberData = {
+        email: data.email,
+        name: data.fullName,
+        custom_fields: {
+          phone: data.phone
+        },
+        tags: ['live-3-agosto'],
+        strict_custom_fields: false,  // Importante: permette custom fields non definiti
+        update_existing: false  // Non tentare di aggiornare automaticamente
+      };
+
+      const createResponse = await axios.post(
+        `https://api.aweber.com/1.0/accounts/${AWEBER_ACCOUNT_ID}/lists/${AWEBER_LIST_ID}/subscribers`,
+        subscriberData,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      console.log('Nuovo subscriber aggiunto ad AWeber con successo');
+    }
+    
+  } catch (error) {
+    // Log dettagliato dell'errore
+    if (error.response) {
+      console.error('Errore AWeber - Status:', error.response.status);
+      console.error('Errore AWeber - Data:', JSON.stringify(error.response.data, null, 2));
+      console.error('Errore AWeber - Headers:', error.response.headers);
+      
+      // Se è un errore 403, potrebbe essere un problema di permessi
+      if (error.response.status === 403) {
+        console.error('ERRORE 403: Verifica che:');
+        console.error('1. Il tuo account AWeber abbia i permessi corretti');
+        console.error('2. L\'applicazione OAuth2 sia approvata');
+        console.error('3. Il refresh token sia valido e non scaduto');
+        console.error('4. Il custom field "phone" sia configurato nella lista AWeber');
+        
+        // Non lanciamo l'errore per non bloccare il salvataggio su Google Sheets
+        console.log('Continuando nonostante errore AWeber...');
+        return;
+      }
+      
+      // Se è un errore 400 con email già esistente (non dovrebbe più accadere con il nuovo flusso)
+      if (error.response.status === 400 && 
+          error.response.data?.error?.message?.includes('already subscribed')) {
+        console.log('Email già sottoscritta (questo non dovrebbe accadere con il nuovo flusso)');
+        return;
       }
     } else {
-      console.error('Errore AWeber:', error.response?.data || error.message);
-      throw new Error('Impossibile aggiungere ad AWeber');
+      console.error('Errore AWeber generale:', error.message);
     }
+    
+    // Non lanciamo l'errore per non bloccare il salvataggio su Google Sheets
+    console.log('Errore con AWeber ma continuo il processo...');
   }
 }
