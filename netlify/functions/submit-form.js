@@ -47,7 +47,7 @@ exports.handler = async (event, context) => {
     await saveToGoogleSheets(data);
     
     // 2. Aggiungi ad AWeber con tag
-    // await addToAWeber(data);
+    await addToAWeber(data);
 
     return {
       statusCode: 200,
